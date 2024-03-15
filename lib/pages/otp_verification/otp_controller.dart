@@ -36,4 +36,39 @@ class OtpController {
 
   }
 
+    Future<void> verifyOtp(String otp) async {
+      final state = context.read<OtpBlocs>().state;
+      String verficationCode = state.verificationCode;
+      
+    try {
+      // verify otp
+      AuthCredential phoneAuthCredential = PhoneAuthProvider.credential(
+          verificationId: verficationCode, smsCode: otp);
+
+      var creds = await _auth.signInWithCredential(phoneAuthCredential);
+
+      context.read<OtpBlocs>().add(UserCredentialEvent(creds));
+    
+
+      if (creds.user?.email != null) {
+        // ignore_for_file: use_build_context_synchronously
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil("/application", (route) => false);
+      } else {
+        Navigator.of(context).pushNamed('/register');
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        _auth.currentUser?.delete();
+        toastInfo(msg: "Email is already in use");
+        Navigator.pop(context);
+      } else {
+        debugPrint(e.toString());
+        toastInfo(msg: e.toString());
+      }
+    }
+    }
+
+
+
 }
